@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HNK Pharma Distribution</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SECTION 1: STYLES (CSS)
+     - Base variables & themes
+     - Layout (sidebar, pages, cards)
+     - Components (autocomplete, tables, filters)
+     - NEW: Discount box & bill summary styles
+     - FIXED: Database filter responsive CSS
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root { --bg:#f8f9fa; --card:#fff; --text:#212529; --border:#dee2e6; --primary:#0d6efd; }
+  body.dark { --bg:#1a1d21; --card:#24282e; --text:#f1f1f1; --border:#3a3f45; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; transition:all 0.3s; overflow-x:hidden; }
+  .card, .table { background:var(--card); color:var(--text); border-color:var(--border); }
+  .table td, .table th { border-color:var(--border); color:var(--text); vertical-align:middle; }
+  .sidebar { min-height:100vh; background:var(--card); border-right:1px solid var(--border); position:sticky; top:0; }
+  .sidebar .nav-link { color:var(--text); padding:.75rem 1rem; border-radius:8px; margin:4px 8px; transition:all 0.2s; cursor:pointer; }
+  .sidebar .nav-link:hover { background:rgba(13,110,253,0.1); transform:translateX(4px); }
+  .sidebar .nav-link.active { background:var(--primary); color:#fff; }
+  .page { display:none; animation:fadeIn 0.4s; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .login-box { max-width:450px; margin:10vh auto; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
+  .login-header { background:linear-gradient(135deg, #0d6efd, #0a58ca); color:#fff; padding:2rem; text-align:center; border-radius:16px 16px 0 0; }
+  .toast-container { position:fixed; top:20px; right:20px; z-index:9999; }
+  .urdu { font-family:'Jameel Noori Nastaleeq',serif; direction:rtl; }
+  .bill-print { width:80mm; font-family:monospace; font-size:12px; padding:5mm; background:#fff; color:#000; }
+  .bill-print h5 { text-align:center; }
+  .footer-static { text-align:center; font-weight:bold; margin-top:10px; border-top:1px dashed #000; padding-top:5px; font-size:10px; }
+  .autocomplete-container { position:relative; }
+  .autocomplete-list { position:absolute; top:100%; left:0; right:0; background:var(--card); border:1px solid var(--border); border-radius:8px; max-height:300px; overflow-y:auto; z-index:1000; box-shadow:0 8px 24px rgba(0,0,0,0.15); display:none; }
+  .autocomplete-list.show { display:block; }
+  .autocomplete-item { padding:10px 15px; cursor:pointer; border-bottom:1px solid var(--border); }
+  .autocomplete-item:hover { background:rgba(13,110,253,0.1); }
+  
+  /* ═══ TABLE RESPONSIVE ═══ */
+  .table-responsive { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:1rem; }
+  .table-responsive table { margin-bottom:0; min-width:600px; }
+  .table td, .table th { white-space:nowrap; font-size:0.9rem; }
+  .table td.wrap-text, .table th.wrap-text { white-space:normal; word-break:break-word; }
+  
+  /* ═══ FILTER ROW - FIXED FOR MOBILE/TABLET ═══ */
+  .filter-row { 
+    display:flex; 
+    flex-wrap:wrap; 
+    gap:0.5rem; 
+    align-items:flex-end;
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+  .filter-row > * { 
+    flex:1 1 180px; 
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  .filter-row .btn { 
+    flex:0 0 auto; 
+    white-space:nowrap;
+  }
+  
+  .btn-group-responsive { display:flex; flex-wrap:wrap; gap:0.5rem; }
+  .btn-group-responsive .btn { flex:1 1 auto; min-width:120px; white-space:nowrap; }
+  .card-body { padding:1rem; }
+  .page h4, .page h5 { font-size:clamp(1rem, 2.5vw, 1.5rem); word-break:break-word; }
+  .total-display { font-size:clamp(1.2rem, 3vw, 2rem); word-break:break-word; }
+  .alert-stats { display:flex; flex-wrap:wrap; gap:1rem; font-size:clamp(0.85rem, 2vw, 1rem); }
+  .alert-stats strong { white-space:nowrap; }
+  .medicine-info-box { background:rgba(13,110,253,0.08); border-left:3px solid var(--primary); padding:10px; border-radius:6px; margin-top:8px; font-size:0.9rem; }
+  .price-calculated { color:var(--primary); font-weight:600; }
+  .badge-packet { background:#0d6efd; }
+  .badge-liquid { background:#198754; }
+  .badge-single { background:#6c757d; }
+  
+  /* ═══ DISCOUNT BOX STYLES (NEW) ═══ */
+  .discount-box {
+    background:rgba(220,53,69,0.08);
+    border-left:3px solid #dc3545;
+    padding:12px;
+    border-radius:6px;
+    margin-top:10px;
+  }
+  .bill-summary {
+    background:rgba(13,110,253,0.05);
+    padding:15px;
+    border-radius:8px;
+    margin-top:10px;
+  }
+  .bill-summary .row { margin-bottom:5px; }
+  .bill-summary .grand-total {
+    font-size:1.3rem;
+    font-weight:bold;
+    color:var(--primary);
+    border-top:2px solid var(--border);
+    padding-top:8px;
+    margin-top:8px;
+  }
+  .discount-label { color:#dc3545; font-weight:600; }
+  
+  /* ═══ MOBILE RESPONSIVE FIXES ═══ */
+  @media (max-width: 767.98px) {
+    .sidebar { min-height:auto; position:relative; border-right:none; border-bottom:1px solid var(--border); }
+    .sidebar .nav { display:flex; flex-wrap:wrap; gap:0.25rem; }
+    .sidebar .nav-link { padding:0.5rem 0.75rem; margin:2px; font-size:0.85rem; }
+    .card-body { padding:0.75rem; }
+    .table td, .table th { font-size:0.8rem; padding:0.5rem; }
+    
+    /* Filter row mobile fix */
+    .filter-row { gap:0.4rem; }
+    .filter-row > * { 
+      flex:1 1 100%; 
+      font-size:0.85rem;
+    }
+    .filter-row .form-control,
+    .filter-row .form-select {
+      font-size:0.85rem;
+      padding:0.35rem 0.6rem;
+    }
+    .filter-row .btn { 
+      width:100%;
+      font-size:0.85rem;
+      padding:0.4rem 0.75rem;
+    }
+    
+    .btn-group-responsive .btn { min-width:100px; font-size:0.85rem; padding:0.4rem 0.75rem; }
+    .col-md-10 { padding:1rem !important; }
+    
+    /* Discount box mobile */
+    .discount-box { padding:8px; font-size:0.85rem; }
+    .bill-summary { padding:10px; }
+  }
+  
+  @media (max-width: 575.98px) {
+    .login-box { margin:5vh 1rem; }
+    .login-header { padding:1.5rem 1rem; }
+    .login-header h3 { font-size:1.25rem; }
+    .table td, .table th { font-size:0.75rem; padding:0.4rem; }
+    .btn { font-size:0.85rem; }
+    .filter-row > * { flex:1 1 100%; }
+    .bill-summary .grand-total { font-size:1.1rem; }
+  }
+  
+  @media print { body * { visibility:hidden; } #printArea, #printArea * { visibility:visible; } #printArea { position:absolute; left:0; top:0; width:80mm; } }
+</style>
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SECTION 2: LOGIN VIEW
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="loginView" class="container">
+  <div class="card login-box">
+    <div class="login-header">
+      <i class="bi bi-capsule-pill" style="font-size:3.5rem"></i>
+      <h3 class="mt-3 mb-1">HNK Pharma Distribution</h3>
+      <p class="mb-0 opacity-75">Medical Distribution Management System</p>
+    </div>
+    <div class="card-body p-4">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Username</label>
+        <input id="lgUser" class="form-control form-control-lg" value="admin">
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Password</label>
+        <input id="lgPass" type="password" class="form-control form-control-lg" value="admin123">
+      </div>
+      <button class="btn btn-primary btn-lg w-100" id="loginBtn">
+        <i class="bi bi-box-arrow-in-right"></i> Login
+      </button>
+      <div id="lgMsg" class="text-danger mt-3 text-center small"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SECTION 3: MAIN APP VIEW
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="appView" class="container-fluid" style="display:none">
+<div class="row g-0">
+
+  <!-- ═══ SECTION 3.1: SIDEBAR ═══ -->
+  <div class="col-md-2 sidebar p-3">
+    <h5 class="p-2 mb-3"><i class="bi bi-capsule-pill"></i> <span data-t="appTitle">HNK Pharma</span></h5>
+    <nav class="nav flex-column" id="sideNav"></nav>
+    <hr class="my-3">
+    <button class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> Theme</button>
+    <select class="form-select form-select-sm mb-2" id="langSel" onchange="setLang(this.value)">
+      <option value="ur">اردو</option>
+      <option value="en">English</option>
+    </select>
+    <button class="btn btn-sm btn-outline-danger w-100" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+  </div>
+
+  <!-- ═══ SECTION 3.2: CONTENT AREA ═══ -->
+  <div class="col-md-10 p-3 p-md-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 mb-md-4 gap-2">
+      <h4 id="pageTitle" class="mb-0">Dashboard</h4>
+      <span id="userInfo" class="badge bg-primary fs-6 px-3 py-2"></span>
+    </div>
+
+    <!-- ═══ PAGE: DASHBOARD ═══ -->
+    <div class="page active" id="pg-dashboard">
+      <div class="row g-3" id="dashCards"></div>
+    </div>
+
+    <!-- ═══ PAGE: COUNTER SALES (WITH DISCOUNT) ═══ -->
+    <div class="page" id="pg-sales">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-cart-plus"></i> Counter Sale</h5>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Select Medicine/Product</label>
+            <div class="autocomplete-container">
+              <input id="saleProductSearch" class="form-control" placeholder="Search medicine..." autocomplete="off">
+              <div id="saleProductList" class="autocomplete-list"></div>
+            </div>
+            <input type="hidden" id="saleProductId">
+            <div id="saleProductInfo" class="medicine-info-box" style="display:none"></div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Sell Mode</label>
+            <select id="saleMode" class="form-select" onchange="onSaleModeChange()">
+              <option value="packet">Packet/Box</option>
+              <option value="individual">Individual</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" id="saleQtyLabel">Quantity</label>
+            <input id="saleQty" type="number" value="1" min="1" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-success w-100" onclick="addToCart()" id="addToCartBtn"><i class="bi bi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Product</th><th>Mode</th><th>Qty</th><th>Unit Price</th><th>Total</th><th></th></tr></thead>
+            <tbody id="cartBody"></tbody>
+          </table>
+        </div>
+        
+        <!-- ═══ DISCOUNT SECTION (NEW) ═══ -->
+        <div class="discount-box">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-percent"></i> Discount Type</label>
+              <select id="saleDiscountType" class="form-select" onchange="recalculateTotal()">
+                <option value="none">No Discount</option>
+                <option value="percent">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (Rs.)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" id="discountValueLabel">Discount Value</label>
+              <input id="saleDiscountValue" type="number" value="0" min="0" step="0.01" class="form-control" oninput="recalculateTotal()">
+            </div>
+            <div class="col-md-4">
+              <div class="text-muted small">
+                <strong>Discount:</strong> Rs.<span id="discountAmountDisplay">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ═══ BILL SUMMARY (NEW) ═══ -->
+        <div class="bill-summary">
+          <div class="row justify-content-end">
+            <div class="col-md-4">
+              <div class="d-flex justify-content-between"><span>Subtotal:</span><strong>Rs.<span id="cartSubtotal">0.00</span></strong></div>
+              <div class="d-flex justify-content-between discount-label"><span>Discount:</span><span>- Rs.<span id="cartDiscount">0.00</span></span></div>
+              <div class="grand-total d-flex justify-content-between"><span>Grand Total:</span><span>Rs.<span id="cartTotal">0.00</span></span></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="btn-group-responsive mt-3">
+          <button class="btn btn-primary" onclick="completeSale('pending')" id="updateSaleBtn">Update Sale</button>
+          <button class="btn btn-success" onclick="completeSale('complete')" id="completeSaleBtn">Complete</button>
+          <button class="btn btn-warning" onclick="printBill('cart')">Print</button>
+          <button class="btn btn-success" onclick="shareWA('cart')">WhatsApp</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: PRODUCTS ═══ -->
+    <div class="page" id="pg-products">
+      <div class="card mb-3"><div class="card-body">
+        <h5><i class="bi bi-box-seam"></i> Add Medicine/Product</h5>
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label">Product Name *</label><input id="pName" class="form-control" placeholder="e.g., Panadol 500mg"></div>
+          <div class="col-md-4"><label class="form-label">Barcode</label><input id="pBarcode" class="form-control" placeholder="Barcode"></div>
+          <div class="col-md-4"><label class="form-label">Product Type *</label><select id="pType" class="form-select" onchange="onProductTypeChange()"><option value="packet">Packet/Box</option><option value="liquid">Liquid</option><option value="single">Single Item</option></select></div>
+          <div class="col-md-4" id="pPacketPriceCol"><label class="form-label" id="pPacketPriceLabel">Packet/Box Price *</label><input id="pPacketPrice" type="number" class="form-control" oninput="calculateProductPrice()"></div>
+          <div class="col-md-4" id="pItemsPerPacketCol"><label class="form-label" id="pItemsPerPacketLabel">Items per Packet *</label><input id="pItemsPerPacket" type="number" class="form-control" oninput="calculateProductPrice()"></div>
+          <div class="col-md-4" id="pPriceCol" style="display:none"><label class="form-label">Unit Price *</label><input id="pPrice" type="number" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Quantity *</label><input id="pQty" type="number" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Alert Quantity</label><input id="pAlert" type="number" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Unit</label><select id="pUnit" class="form-select"><option value="tablet">Tablet</option><option value="capsule">Capsule</option><option value="ml">ML</option><option value="piece">Piece</option><option value="pair">Pair</option><option value="box">Box</option></select></div>
+          <div class="col-md-4"><label class="form-label">Supplier</label><div class="autocomplete-container"><input id="pSupplier" class="form-control" placeholder="Search supplier..." autocomplete="off"><div id="pSupplierList" class="autocomplete-list"></div></div></div>
+          <div class="col-md-4"><label class="form-label">Company</label><input id="pCompany" class="form-control" placeholder="e.g., GSK, Getz"></div>
+        </div>
+        <div id="pPriceCalcInfo" class="medicine-info-box mt-2" style="display:none"></div>
+        <button class="btn btn-primary mt-3" onclick="saveProduct()"><i class="bi bi-save"></i> Save Product</button>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <h5>Products List</h5>
+        <div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Type</th><th>Supplier</th><th>Company</th><th>Per Unit</th><th>Qty</th><th>Alert</th><th></th></tr></thead><tbody id="prodBody"></tbody></table></div>
+        <div id="prodPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: INVENTORY ═══ -->
+    <div class="page" id="pg-inventory">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-boxes"></i> Inventory Status</h5>
+        <div class="filter-row mb-3">
+          <input id="invFilterName" class="form-control" placeholder="Product name..." oninput="loadInventory()">
+          <input id="invFilterSupplier" class="form-control" placeholder="Supplier name..." oninput="loadInventory()">
+          <input id="invFilterCompany" class="form-control" placeholder="Company name..." oninput="loadInventory()">
+          <button class="btn btn-outline-secondary" onclick="clearInvFilters()">Clear</button>
+        </div>
+        <div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Type</th><th>Supplier</th><th>Company</th><th>Qty</th><th>Alert</th><th>Per Unit</th><th>Status</th><th>Action</th></tr></thead><tbody id="invBody"></tbody></table></div>
+        <div id="invPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: LOW STOCK ═══ -->
+    <div class="page" id="pg-lowstock">
+      <div class="card"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+          <h5><i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Alert</h5>
+          <div class="btn-group-responsive">
+            <button class="btn btn-warning" onclick="printLowStock()"><i class="bi bi-printer"></i> Print</button>
+            <button class="btn btn-success" onclick="shareLowStockWA()"><i class="bi bi-whatsapp"></i> WhatsApp</button>
+          </div>
+        </div>
+        <div class="filter-row mb-3">
+          <input id="lowFilterName" class="form-control" placeholder="Product name..." oninput="loadLowStock()">
+          <input id="lowFilterSupplier" class="form-control" placeholder="Supplier name..." oninput="loadLowStock()">
+          <input id="lowFilterCompany" class="form-control" placeholder="Company name..." oninput="loadLowStock()">
+          <button class="btn btn-outline-secondary" onclick="clearLowFilters()">Clear</button>
+        </div>
+        <div class="table-responsive"><table class="table table-warning"><thead><tr><th>Name</th><th>Type</th><th>Supplier</th><th>Company</th><th>Stock</th><th>Alert</th><th>Per Unit</th><th>Shortage</th></tr></thead><tbody id="lowStockBody"></tbody></table></div>
+        <div id="lowStockPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: SUPPLIERS ═══ -->
+    <div class="page" id="pg-suppliers">
+      <div class="card mb-3"><div class="card-body">
+        <h5><i class="bi bi-building"></i> Register Supplier</h5>
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label">Supplier Name *</label><input id="supName" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Contact *</label><input id="supContact" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Email</label><input id="supEmail" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Address</label><input id="supAddress" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">City</label><input id="supCity" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Phone</label><input id="supPhone" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">NTN</label><input id="supNTN" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Custom 1</label><input id="supCustom1" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Custom 2</label><input id="supCustom2" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Custom 3</label><input id="supCustom3" class="form-control"></div>
+        </div>
+        <button class="btn btn-primary mt-3" onclick="saveSupplier()"><i class="bi bi-save"></i> Register Supplier</button>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <h5>Registered Suppliers</h5>
+        <div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>City</th><th>NTN</th><th>Custom 1</th><th></th></tr></thead><tbody id="supBody"></tbody></table></div>
+        <div id="supPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: ORDER BOOK ═══ -->
+    <div class="page" id="pg-orderbook">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-clipboard-check"></i> Pre-Order Booking</h5>
+        <div class="row g-2 mb-3">
+          <input id="obShop" class="form-control" placeholder="Shop/Clinic Name">
+          <input id="obLoc" class="form-control" placeholder="Location">
+          <input id="obUser" class="form-control" readonly>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-5"><div class="autocomplete-container"><input id="obProductSearch" class="form-control" placeholder="Search medicine..." autocomplete="off"><div id="obProductList" class="autocomplete-list"></div></div><input type="hidden" id="obProductId"></div>
+          <div class="col-md-2"><select id="obMode" class="form-select"><option value="packet">Packet</option><option value="individual">Individual</option></select></div>
+          <div class="col-md-2"><input id="obQty" type="number" value="1" class="form-control"></div>
+          <div class="col-md-3"><button class="btn btn-success w-100" onclick="addOBItem()" id="addOBItemBtn">Add</button></div>
+        </div>
+        <div class="table-responsive"><table class="table"><thead><tr><th>Product</th><th>Mode</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody id="obBody"></tbody></table></div>
+        <h4 class="text-end total-display">Total: Rs.<span id="obTotal">0</span></h4>
+        <div class="btn-group-responsive mt-3">
+          <button class="btn btn-primary" onclick="saveBooking()" id="saveBookingBtn">Book Order</button>
+          <button class="btn btn-warning" onclick="printBill('ob')">Print</button>
+          <button class="btn btn-success" onclick="shareWA('ob')">WhatsApp</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: ORDER LOGS ═══ -->
+    <div class="page" id="pg-orderlogs">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-journal-text"></i> Order Logs</h5>
+        <div class="table-responsive"><table class="table"><thead><tr><th>ID</th><th>Booker</th><th>Shop</th><th>Location</th><th>Total</th><th>Time</th></tr></thead><tbody id="obLogBody"></tbody></table></div>
+        <div id="obLogPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: DELIVERY ═══ -->
+    <div class="page" id="pg-delivery">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-truck"></i> Pending Deliveries</h5>
+        <input id="delFilter" class="form-control mb-3" placeholder="Search..." oninput="loadDelivery()">
+        <div class="table-responsive"><table class="table"><thead><tr><th>Shop</th><th>Location</th><th>Booker</th><th>Total</th><th>Action</th></tr></thead><tbody id="delBody"></tbody></table></div>
+        <div id="delPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: DELIVERY LOGS ═══ -->
+    <div class="page" id="pg-deliverylogs">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-journal-check"></i> Delivery Logs</h5>
+        <div class="table-responsive"><table class="table"><thead><tr><th>ID</th><th>User</th><th>Shop</th><th>Total</th><th>Time</th></tr></thead><tbody id="delLogBody"></tbody></table></div>
+        <div id="delLogPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: ALL SALES (WITH DISCOUNT COLUMNS) ═══ -->
+    <div class="page" id="pg-allsales">
+      <div class="card"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-cart-check"></i> All Sales</h5>
+        <div class="filter-row mb-3">
+          <input id="asUser" class="form-control" placeholder="User name">
+          <input id="asProd" class="form-control" placeholder="Product name">
+          <select id="asPeriod" class="form-select">
+            <option value="">All Time</option>
+            <option value="day">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+            <option value="custom">Custom Period</option>
+          </select>
+          <input id="asFrom" type="date" class="form-control" style="display:none">
+          <input id="asTo" type="date" class="form-control" style="display:none">
+          <button class="btn btn-primary" onclick="loadAllSales()"><i class="bi bi-search"></i> Search</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr><th>ID</th><th>Type</th><th>User</th><th>Shop</th><th>Subtotal</th><th>Discount</th><th>Grand Total</th><th>Date</th><th>Action</th></tr>
+            </thead>
+            <tbody id="asBody"></tbody>
+          </table>
+        </div>
+        <div class="bill-summary">
+          <div class="row justify-content-end">
+            <div class="col-md-5">
+              <div class="d-flex justify-content-between"><span>Total Subtotal:</span><strong>Rs.<span id="asSubtotal">0.00</span></strong></div>
+              <div class="d-flex justify-content-between discount-label"><span>Total Discount:</span><span>- Rs.<span id="asDiscount">0.00</span></span></div>
+              <div class="grand-total d-flex justify-content-between"><span>Grand Total:</span><span>Rs.<span id="asTotal" class="text-primary">0.00</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-group-responsive mt-3">
+          <button class="btn btn-success" onclick="downloadCSV()"><i class="bi bi-download"></i> CSV</button>
+          <button class="btn btn-success" onclick="shareWA('allsales')"><i class="bi bi-whatsapp"></i> WhatsApp</button>
+        </div>
+        <div id="asPag" class="mt-3"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: SALES DETAILS ═══ -->
+    <div class="page" id="pg-salesdetails">
+      <div class="card"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-graph-up"></i> Sales Details</h5>
+        <div class="filter-row mb-3">
+          <select id="sdPeriod" class="form-select" onchange="handlePeriodChange()">
+            <option value="all">All Time</option>
+            <option value="day">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="sdFrom" type="date" class="form-control" style="display:none">
+          <input id="sdTo" type="date" class="form-control" style="display:none">
+          <select id="sdRole" class="form-select">
+            <option value="all">All Roles</option>
+            <option value="counter">Counter</option>
+            <option value="orderbooker">Booker</option>
+            <option value="delivery">Delivery</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadSalesDetails()"><i class="bi bi-funnel"></i> Apply</button>
+        </div>
+        <div class="alert alert-info mb-3">
+          <div class="alert-stats">
+            <div><strong>Revenue:</strong> Rs.<span id="sdTotalRevenue" class="text-primary fw-bold">0</span></div>
+            <div><strong>Transactions:</strong> <span id="sdTotalTrans" class="text-primary fw-bold">0</span></div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr><th>User</th><th>Role</th><th>Trans</th><th>Amount</th><th>Avg</th></tr>
+            </thead>
+            <tbody id="sdBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-group-responsive mt-3">
+          <button class="btn btn-warning" onclick="printSalesDetails()"><i class="bi bi-printer"></i> Print</button>
+          <button class="btn btn-success" onclick="shareSalesDetailsWA()"><i class="bi bi-whatsapp"></i> WhatsApp</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: USERS ═══ -->
+    <div class="page" id="pg-users">
+      <div class="card mb-3"><div class="card-body">
+        <h5>Create User</h5>
+        <div class="row g-2">
+          <input id="uName" class="form-control" placeholder="Full Name">
+          <input id="uUser" class="form-control" placeholder="Username">
+          <input id="uPass" class="form-control" placeholder="Password">
+          <select id="uRole" class="form-select">
+            <option value="manager">Manager</option>
+            <option value="orderbooker">Order Booker</option>
+            <option value="delivery">Delivery</option>
+            <option value="counter">Counter</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-primary" onclick="saveUser()">Create</button>
+        </div>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+        <div id="usersPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: TRASH ═══ -->
+    <div class="page" id="pg-trash">
+      <div class="card"><div class="card-body">
+        <h5>Trash</h5>
+        <div class="filter-row mb-3">
+          <input id="trFilter" class="form-control" placeholder="Search" oninput="loadTrash()">
+          <button class="btn btn-success" onclick="bulkRestore()">Restore Selected</button>
+          <button class="btn btn-danger" onclick="bulkDelete()">Delete Permanent</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th><input type="checkbox" onchange="toggleAllTrash(this)"></th><th>Entity</th><th>Data</th><th>Deleted</th><th></th></tr></thead>
+            <tbody id="trashBody"></tbody>
+          </table>
+        </div>
+        <div id="trashPag"></div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: DATABASE (CSS FIXED) ═══ -->
+    <div class="page" id="pg-database">
+      <div class="card"><div class="card-body">
+        <h5><i class="bi bi-database"></i> Database</h5>
+        <div class="filter-row mb-3">
+          <select id="dbTable" class="form-select">
+            <option>Products</option>
+            <option>Suppliers</option>
+            <option>Users</option>
+            <option>Orders</option>
+            <option>OrderLogs</option>
+            <option>DeliveryLogs</option>
+            <option>Sales</option>
+          </select>
+          <input id="dbSearch" class="form-control" placeholder="Search...">
+          <button class="btn btn-primary" onclick="loadDB()"><i class="bi bi-search"></i> Search</button>
+          <button class="btn btn-danger" onclick="dbGroupDelete()"><i class="bi bi-trash"></i> Delete</button>
+        </div>
+        <div id="dbTableWrap"></div>
+        <div id="dbPag"></div>
+        <hr>
+        <div class="btn-group-responsive">
+          <button class="btn btn-success" onclick="downloadDB()"><i class="bi bi-download"></i> Download DB</button>
+          <label class="btn btn-warning mb-0"><i class="bi bi-upload"></i> Upload<input type="file" hidden onchange="uploadDB(event)"></label>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ═══ PAGE: SETTINGS ═══ -->
+    <div class="page" id="pg-settings">
+      <div class="card"><div class="card-body">
+        <h5>Settings</h5>
+        <div class="row g-2">
+          <label>Store Name<input id="sName" class="form-control"></label>
+          <label>Contact<input id="sContact" class="form-control"></label>
+          <label>Location<input id="sLoc" class="form-control"></label>
+          <label>Thank You<input id="sThanks" class="form-control"></label>
+          <label>Footer<input id="sFooter" class="form-control"></label>
+          <label>Custom<input id="sCustom" class="form-control"></label>
+        </div>
+        <button class="btn btn-primary mt-3" onclick="saveSettings()">Save</button>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SECTION 4: JAVASCRIPT - STATE MANAGEMENT
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+let USER = null, SETTINGS = {}, PRODUCTS = [], SUPPLIERS = [], CART = [], OB_CART = [], LOW_STOCK = [], SALES_DETAILS = [];
+const PAGE_SIZE = 10;
+let PAG = { products:1, inv:1, oblog:1, del:1, dellog:1, as:1, users:1, trash:1, db:1, lowstock:1, suppliers:1 };
+let CURRENT_FILTERED = [], ALL_SALES_CACHE = [], DB_CACHE = [], FILTERED_INV = [], FILTERED_LOW = [];
+let TRANSACTION_IN_PROGRESS = false, SELECTED_PRODUCT = null;
+
+const I18N = {
+  ur: { appTitle:'HNK فارما', dashboard:'ڈیش بورڈ', sales:'سیلز', products:'پروڈکٹس', inventory:'انوینٹری', lowstock:'لو اسٹاک', suppliers:'سپلائرز', orderbook:'آرڈر بک', orderlogs:'آرڈر لاگ', delivery:'ڈیلیوری', deliverylogs:'ڈیلیوری لاگ', allsales:'تمام سیلز', salesdetails:'سیلز ڈیٹیلز', users:'یوزرز', trash:'ٹرش', database:'ڈیٹابیس', settings:'سیٹنگز' },
+  en: { appTitle:'HNK Pharma', dashboard:'Dashboard', sales:'Sales', products:'Products', inventory:'Inventory', lowstock:'Low Stock', suppliers:'Suppliers', orderbook:'Order Book', orderlogs:'Order Logs', delivery:'Delivery', deliverylogs:'Delivery Logs', allsales:'All Sales', salesdetails:'Sales Details', users:'Users', trash:'Trash', database:'Database', settings:'Settings' }
+};
+let LANG = 'ur';
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 5: JAVASCRIPT - UTILITIES & HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+const CACHE_DURATION = 300000;
+function getCached(k) {
+  try {
+    const c = localStorage.getItem(k);
+    if (c) {
+      const d = JSON.parse(c);
+      if (Date.now() - d.timestamp < CACHE_DURATION) return d.value;
+    }
+  } catch(e) {}
+  return null;
+}
+function setCache(k, v) {
+  try { localStorage.setItem(k, JSON.stringify({ value: v, timestamp: Date.now() })); } catch(e) {}
+}
+function clearCache() {
+  try { localStorage.clear(); } catch(e) {}
+}
+function debounce(f, w) {
+  let t;
+  return function(...a) {
+    clearTimeout(t);
+    t = setTimeout(() => f(...a), w);
+  };
+}
+function toast(m, t='success') {
+  const c = document.getElementById('toastContainer');
+  const d = document.createElement('div');
+  d.className = 'toast show align-items-center text-white bg-' + t + ' border-0';
+  d.innerHTML = '<div class="d-flex"><div class="toast-body">' + m + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button></div>';
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+}
+function call(fn, ...a) {
+  return new Promise((r, j) => {
+    google.script.run
+      .withSuccessHandler(r)
+      .withFailureHandler(e => { toast('Error: ' + (e.message || e), 'danger'); j(e); })[fn](...a);
+  });
+}
+function safeParseJSON(s, f) {
+  try { return typeof s === 'string' ? JSON.parse(s) : s; } 
+  catch(e) { return f !== undefined ? f : s; }
+}
+function calculatePerItemPrice(pp, ip) {
+  if (!pp || !ip || ip <= 0) return 0;
+  return Math.round((pp / ip) * 100) / 100;
+}
+function calculateSalePrice(p, m, q) {
+  if (!p || !q || q <= 0) return 0;
+  if (p.productType === 'single') return (Number(p.price) || 0) * q;
+  if (m === 'packet') return (Number(p.packetPrice) || 0) * q;
+  return calculatePerItemPrice(p.packetPrice, p.itemsPerPacket) * q;
+}
+function getProductTypeBadge(t) {
+  return {
+    'packet': '<span class="badge badge-packet">Packet</span>',
+    'liquid': '<span class="badge badge-liquid">Liquid</span>',
+    'single': '<span class="badge badge-single">Single</span>'
+  }[t] || '<span class="badge bg-secondary">N/A</span>';
+}
+function getUnitLabel(p) {
+  if (p.productType === 'packet') return p.unit || 'tablet';
+  if (p.productType === 'liquid') return 'ml';
+  return p.unit || 'piece';
+}
+
+// ═══ DISCOUNT CALCULATION HELPER (NEW) ═══
+function calculateDiscount(subtotal, discountType, discountValue) {
+  if (!discountType || discountType === 'none' || !discountValue || discountValue <= 0) {
+    return { discountAmount: 0, grandTotal: subtotal };
+  }
+  var discountAmount = 0;
+  if (discountType === 'percent') {
+    if (discountValue > 100) discountValue = 100;
+    discountAmount = Math.round((subtotal * discountValue / 100) * 100) / 100;
+  } else if (discountType === 'fixed') {
+    discountAmount = Math.min(Number(discountValue) || 0, subtotal);
+  }
+  var grandTotal = Math.max(0, subtotal - discountAmount);
+  return { discountAmount: discountAmount, grandTotal: grandTotal };
+}
+
+function recalculateTotal() {
+  var subtotal = CART.reduce(function(s, c) { return s + c.total; }, 0);
+  var discountType = document.getElementById('saleDiscountType').value;
+  var discountValue = +document.getElementById('saleDiscountValue').value || 0;
+  
+  var label = document.getElementById('discountValueLabel');
+  if (discountType === 'percent') label.innerText = 'Discount %';
+  else if (discountType === 'fixed') label.innerText = 'Discount Rs.';
+  else label.innerText = 'Discount Value';
+  
+  var result = calculateDiscount(subtotal, discountType, discountValue);
+  
+  document.getElementById('cartSubtotal').innerText = subtotal.toFixed(2);
+  document.getElementById('cartDiscount').innerText = result.discountAmount.toFixed(2);
+  document.getElementById('discountAmountDisplay').innerText = result.discountAmount.toFixed(2);
+  document.getElementById('cartTotal').innerText = result.grandTotal.toFixed(2);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 6: JAVASCRIPT - AUTHENTICATION MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function doLogin() {
+  const b = document.getElementById('loginBtn');
+  const m = document.getElementById('lgMsg');
+  const u = document.getElementById('lgUser').value.trim();
+  const p = document.getElementById('lgPass').value;
+  
+  if (!u || !p) { m.innerText = 'Enter credentials'; return; }
+  
+  b.disabled = true;
+  b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in...';
+  m.innerText = '';
+  
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r && r.ok) {
+        USER = r.user;
+        toast('Welcome ' + USER.name);
+        initApp();
+      } else {
+        m.innerText = (r && r.msg) || 'Invalid';
+        b.disabled = false;
+        b.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+      }
+    })
+    .withFailureHandler(function(e) {
+      m.innerText = 'Server error';
+      b.disabled = false;
+      b.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+    })
+    .login(u, p);
+}
+
+function logout() {
+  USER = null;
+  SETTINGS = {};
+  PRODUCTS = [];
+  SUPPLIERS = [];
+  CART = [];
+  OB_CART = [];
+  LOW_STOCK = [];
+  SALES_DETAILS = [];
+  ALL_SALES_CACHE = [];
+  DB_CACHE = [];
+  CURRENT_FILTERED = [];
+  FILTERED_INV = [];
+  FILTERED_LOW = [];
+  SELECTED_PRODUCT = null;
+  TRANSACTION_IN_PROGRESS = false;
+  
+  clearCache();
+  document.body.classList.remove('dark', 'urdu');
+  
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('loginView').style.display = 'block';
+  
+  var clearIds = ['dashCards','cartBody','prodBody','invBody','lowStockBody','obBody','obLogBody','delBody','delLogBody','asBody','sdBody','usersBody','trashBody','dbTableWrap','sideNav','prodPag','invPag','obLogPag','delPag','delLogPag','asPag','usersPag','trashPag','dbPag','lowStockPag','supBody','supPag'];
+  clearIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+  
+  document.getElementById('lgUser').value = 'admin';
+  document.getElementById('lgPass').value = 'admin123';
+  document.getElementById('lgMsg').innerText = '';
+  
+  var b = document.getElementById('loginBtn');
+  b.disabled = false;
+  b.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+  
+  document.getElementById('cartTotal').innerText = '0.00';
+  document.getElementById('cartSubtotal').innerText = '0.00';
+  document.getElementById('cartDiscount').innerText = '0.00';
+  document.getElementById('obTotal').innerText = '0';
+  document.getElementById('asTotal').innerText = '0.00';
+  document.getElementById('asSubtotal').innerText = '0.00';
+  document.getElementById('asDiscount').innerText = '0.00';
+  document.getElementById('sdTotalRevenue').innerText = '0';
+  document.getElementById('sdTotalTrans').innerText = '0';
+  document.getElementById('userInfo').innerText = '';
+  document.getElementById('pageTitle').innerText = 'Dashboard';
+  
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  var d = document.getElementById('pg-dashboard');
+  if (d) d.classList.add('active');
+  
+  window.scrollTo(0, 0);
+  setTimeout(function() { document.getElementById('lgUser').focus(); }, 100);
+}
+
+function initApp() {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('appView').style.display = 'block';
+  document.getElementById('userInfo').innerText = USER.name + ' (' + USER.role + ')';
+  
+  var cs = getCached('settings');
+  if (cs) {
+    SETTINGS = cs;
+    applySettings();
+    loadInitialData();
+  } else {
+    google.script.run
+      .withSuccessHandler(function(s) {
+        SETTINGS = s || {};
+        setCache('settings', SETTINGS);
+        applySettings();
+        loadInitialData();
+      })
+      .withFailureHandler(function() {
+        applySettings();
+        loadInitialData();
+      })
+      .getSettings();
+  }
+}
+
+function applySettings() {
+  LANG = SETTINGS.lang || 'ur';
+  document.getElementById('langSel').value = LANG;
+  if (SETTINGS.theme === 'dark') document.body.classList.add('dark');
+}
+
+function loadInitialData() {
+  Promise.all([call('getProducts'), call('getSuppliers')])
+    .then(function(r) {
+      PRODUCTS = r[0] || [];
+      SUPPLIERS = r[1] || [];
+      buildMenu();
+      applyI18N();
+      showPage('dashboard');
+    })
+    .catch(function() {
+      buildMenu();
+      applyI18N();
+      showPage('dashboard');
+    });
+  google.script.run.seedData();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 7: JAVASCRIPT - MENU & NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+const ROLE_PAGES = {
+  admin: ['dashboard','sales','products','inventory','lowstock','suppliers','orderbook','orderlogs','delivery','deliverylogs','allsales','salesdetails','users','trash','database','settings'],
+  manager: ['dashboard','inventory','lowstock','suppliers','orderlogs','deliverylogs','allsales','salesdetails'],
+  counter: ['dashboard','sales'],
+  orderbooker: ['dashboard','orderbook'],
+  delivery: ['dashboard','delivery']
+};
+
+function buildMenu() {
+  var pages = ROLE_PAGES[USER.role] || ['dashboard'];
+  var nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+  pages.forEach(function(p) {
+    var a = document.createElement('a');
+    a.className = 'nav-link';
+    a.href = '#';
+    a.dataset.page = p;
+    a.innerHTML = '<span>' + (I18N[LANG][p] || p) + '</span>';
+    a.onclick = function(e) { e.preventDefault(); showPage(p); };
+    nav.appendChild(a);
+  });
+}
+
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(function(x) { x.classList.remove('active'); });
+  var pg = document.getElementById('pg-' + p);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('#sideNav .nav-link').forEach(function(x) { x.classList.toggle('active', x.dataset.page === p); });
+  document.getElementById('pageTitle').innerText = I18N[LANG][p] || p;
+  
+  var loaders = {
+    dashboard: loadDashboard,
+    sales: loadSaleProducts,
+    products: loadProducts,
+    inventory: loadInventory,
+    lowstock: loadLowStock,
+    suppliers: loadSuppliers,
+    orderbook: function() { document.getElementById('obUser').value = USER.name; loadOBProducts(); },
+    orderlogs: loadOrderLogs,
+    delivery: loadDelivery,
+    deliverylogs: loadDeliveryLogs,
+    allsales: loadAllSales,
+    salesdetails: loadSalesDetails,
+    users: loadUsers,
+    trash: loadTrash,
+    database: loadDB,
+    settings: loadSettings
+  };
+  
+  if (loaders[p]) {
+    try { loaders[p](); } catch(e) { toast('Load error', 'danger'); }
+  }
+}
+
+function applyI18N() {
+  document.querySelectorAll('[data-t]').forEach(function(el) {
+    var k = el.dataset.t;
+    if (I18N[LANG][k]) el.innerText = I18N[LANG][k];
+  });
+  document.body.classList.toggle('urdu', LANG === 'ur');
+  buildMenu();
+}
+
+function setLang(v) {
+  LANG = v;
+  applyI18N();
+  google.script.run.saveSettings(Object.assign(SETTINGS, { lang: v }));
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  google.script.run.saveSettings(Object.assign(SETTINGS, { theme: document.body.classList.contains('dark') ? 'dark' : 'light' }));
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 8: JAVASCRIPT - DASHBOARD MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadDashboard() {
+  Promise.all([call('getProducts'), call('getUsers'), call('getAllSales'), call('getOrders')])
+    .then(function(r) {
+      var p = r[0] || [], u = r[1] || [], s = r[2] || [], o = r[3] || [];
+      var low = p.filter(function(x) { return (x.quantity || 0) <= (x.alertQty || 0); }).length;
+      var cards = [
+        ['Products', p.length, 'capsule-pill text-primary'],
+        ['Users', u.length, 'people text-success'],
+        ['Sales', s.length, 'graph-up text-info'],
+        ['Pending', o.filter(function(x) { return x.status !== 'delivered'; }).length, 'clipboard text-warning'],
+        ['Low Stock', low, 'exclamation-triangle text-danger']
+      ];
+      document.getElementById('dashCards').innerHTML = cards.map(function(c) {
+        return '<div class="col-6 col-md-3"><div class="card p-3 text-center"><i class="bi ' + c[2] + '" style="font-size:2rem"></i><h5 class="mt-2">' + c[0] + '</h5><h3>' + c[1] + '</h3></div></div>';
+      }).join('');
+    })
+    .catch(function() { toast('Dashboard error', 'danger'); });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 9: JAVASCRIPT - PAGINATION HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+function paginate(a, k) {
+  var t = Math.max(1, Math.ceil(a.length / PAGE_SIZE));
+  if (PAG[k] > t) PAG[k] = t;
+  var s = (PAG[k] - 1) * PAGE_SIZE;
+  return { items: a.slice(s, s + PAGE_SIZE), total: t };
+}
+
+function pagHTML(k, t) {
+  var h = '<nav><ul class="pagination pagination-sm flex-wrap">';
+  for (var i = 1; i <= t; i++) {
+    h += '<li class="page-item ' + (i === PAG[k] ? 'active' : '') + '"><a class="page-link" href="#" onclick="PAG.' + k + '=' + i + ';loadPageByKey(\'' + k + '\');return false;">' + i + '</a></li>';
+  }
+  return h + '</ul></nav>';
+}
+
+function loadPageByKey(k) {
+  var m = { products: loadProducts, inv: loadInventory, oblog: loadOrderLogs, del: loadDelivery, dellog: loadDeliveryLogs, as: loadAllSales, users: loadUsers, trash: loadTrash, db: loadDB, lowstock: loadLowStock, suppliers: loadSuppliers };
+  if (m[k]) m[k]();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 10: JAVASCRIPT - PRODUCTS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function onProductTypeChange() {
+  var t = document.getElementById('pType').value;
+  var pc = document.getElementById('pPacketPriceCol');
+  var ic = document.getElementById('pItemsPerPacketCol');
+  var prc = document.getElementById('pPriceCol');
+  var pl = document.getElementById('pPacketPriceLabel');
+  var il = document.getElementById('pItemsPerPacketLabel');
+  var us = document.getElementById('pUnit');
+  
+  if (t === 'packet') {
+    pc.style.display = 'block'; ic.style.display = 'block'; prc.style.display = 'none';
+    pl.innerText = 'Packet/Box Price *'; il.innerText = 'Tablets/Capsules per Packet *'; us.value = 'tablet';
+  } else if (t === 'liquid') {
+    pc.style.display = 'block'; ic.style.display = 'block'; prc.style.display = 'none';
+    pl.innerText = 'Bottle Price *'; il.innerText = 'ML per Bottle *'; us.value = 'ml';
+  } else {
+    pc.style.display = 'none'; ic.style.display = 'none'; prc.style.display = 'block'; us.value = 'piece';
+  }
+  calculateProductPrice();
+}
+
+function calculateProductPrice() {
+  var t = document.getElementById('pType').value;
+  var ib = document.getElementById('pPriceCalcInfo');
+  if (t === 'single') { ib.style.display = 'none'; return; }
+  
+  var pp = +document.getElementById('pPacketPrice').value || 0;
+  var ip = +document.getElementById('pItemsPerPacket').value || 0;
+  
+  if (pp > 0 && ip > 0) {
+    var pi = calculatePerItemPrice(pp, ip);
+    var ul = t === 'liquid' ? 'ml' : (document.getElementById('pUnit').value || 'tablet');
+    ib.innerHTML = '<i class="bi bi-calculator"></i> <strong>Calculated:</strong> Per ' + ul + ' = <span class="price-calculated">Rs.' + pi.toFixed(2) + '</span> (' + pp + ' ÷ ' + ip + ')';
+    ib.style.display = 'block';
+  } else {
+    ib.style.display = 'none';
+  }
+}
+
+function loadProducts() {
+  call('getProducts').then(function(p) {
+    PRODUCTS = p || [];
+    var r = paginate(PRODUCTS, 'products');
+    document.getElementById('prodBody').innerHTML = r.items.map(function(p) {
+      var pu = '-';
+      if (p.productType === 'packet' || p.productType === 'liquid') {
+        pu = 'Rs.' + calculatePerItemPrice(p.packetPrice, p.itemsPerPacket).toFixed(2);
+      } else {
+        pu = 'Rs.' + (p.price || 0);
+      }
+      return '<tr><td class="wrap-text">' + p.name + '</td><td>' + getProductTypeBadge(p.productType) + '</td><td class="wrap-text">' + (p.supplier || '-') + '</td><td class="wrap-text">' + (p.company || '-') + '</td><td>' + pu + '</td><td>' + p.quantity + '</td><td>' + (p.alertQty || 0) + '</td><td><button class="btn btn-sm btn-danger" onclick="delProd(\'' + p.id + '\')"><i class="bi bi-trash"></i></button></td></tr>';
+    }).join('');
+    document.getElementById('prodPag').innerHTML = pagHTML('products', r.total);
+  });
+}
+
+function saveProduct() {
+  var t = document.getElementById('pType').value;
+  var p = {
+    name: pName.value,
+    barcode: pBarcode.value,
+    productType: t,
+    quantity: +pQty.value,
+    alertQty: +pAlert.value,
+    unit: pUnit.value,
+    supplier: document.getElementById('pSupplier').value,
+    company: document.getElementById('pCompany').value
+  };
+  
+  if (t === 'packet' || t === 'liquid') {
+    p.packetPrice = +pPacketPrice.value;
+    p.itemsPerPacket = +pItemsPerPacket.value;
+  } else {
+    p.price = +pPrice.value;
+  }
+  
+  call('addProduct', p).then(function(r) {
+    if (r.ok) {
+      pName.value = pBarcode.value = pPacketPrice.value = pItemsPerPacket.value = pPrice.value = pQty.value = pAlert.value = '';
+      document.getElementById('pSupplier').value = '';
+      document.getElementById('pCompany').value = '';
+      document.getElementById('pPriceCalcInfo').style.display = 'none';
+      loadProducts();
+      toast('Product added');
+    } else {
+      toast(r.msg, 'danger');
+    }
+  });
+}
+
+function delProd(id) {
+  if (confirm('Delete?')) {
+    call('deleteEntity', 'Products', id).then(function() { loadProducts(); });
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 11: JAVASCRIPT - MEDICINE PRICING MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function showSaleProductInfo(p) {
+  var ib = document.getElementById('saleProductInfo');
+  var ms = document.getElementById('saleMode');
+  var ql = document.getElementById('saleQtyLabel');
+  
+  if (!p || p.productType === 'single') {
+    ib.style.display = 'none';
+    ms.style.display = 'none';
+    ql.innerText = 'Quantity';
+    return;
+  }
+  
+  ms.style.display = 'block';
+  var pi = calculatePerItemPrice(p.packetPrice, p.itemsPerPacket);
+  var ul = getUnitLabel(p);
+  
+  ib.innerHTML = '<i class="bi bi-info-circle"></i> <strong>Packet:</strong> Rs.' + p.packetPrice + 
+    ' (' + p.itemsPerPacket + ' ' + ul + ')<br>' +
+    '<strong>Per ' + ul + ':</strong> Rs.' + pi.toFixed(2);
+  ib.style.display = 'block';
+  
+  onSaleModeChange();
+}
+
+function onSaleModeChange() {
+  var m = document.getElementById('saleMode').value;
+  var ql = document.getElementById('saleQtyLabel');
+  
+  if (!SELECTED_PRODUCT || SELECTED_PRODUCT.productType === 'single') {
+    ql.innerText = 'Quantity';
+    return;
+  }
+  
+  var ul = getUnitLabel(SELECTED_PRODUCT);
+  if (m === 'packet') {
+    ql.innerText = 'Packets/Boxes';
+  } else {
+    ql.innerText = ul.charAt(0).toUpperCase() + ul.slice(1) + 's';
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 12: JAVASCRIPT - SALES MODULE (WITH DISCOUNT)
+// ═══════════════════════════════════════════════════════════════════════════
+function loadSaleProducts() {
+  setupAutocomplete('saleProductSearch', 'saleProductList', 'saleProductId', function(p) {
+    SELECTED_PRODUCT = p;
+    showSaleProductInfo(p);
+  });
+  renderCart();
+}
+
+function addToCart() {
+  var id = document.getElementById('saleProductId').value;
+  if (!id) return toast('Select product', 'warning');
+  var p = PRODUCTS.find(function(x) { return x.id === id; });
+  if (!p) return toast('Not found', 'danger');
+  
+  var q = +document.getElementById('saleQty').value;
+  if (q < 1) return toast('Qty >= 1', 'warning');
+  
+  var sm = 'packet', up = 0, tp = 0, ml = '';
+  
+  if (p.productType === 'single') {
+    sm = 'single'; up = p.price; tp = up * q; ml = 'Single';
+  } else {
+    sm = document.getElementById('saleMode').value;
+    if (sm === 'packet') {
+      up = p.packetPrice; tp = up * q; ml = 'Packet';
+    } else {
+      up = calculatePerItemPrice(p.packetPrice, p.itemsPerPacket);
+      tp = up * q; ml = getUnitLabel(p);
+    }
+  }
+  
+  CART.push({
+    id: p.id, name: p.name, productType: p.productType,
+    sellMode: sm, modeLabel: ml, qty: q, unitPrice: up, total: tp
+  });
+  
+  document.getElementById('saleProductSearch').value = '';
+  document.getElementById('saleProductId').value = '';
+  document.getElementById('saleQty').value = 1;
+  document.getElementById('saleProductInfo').style.display = 'none';
+  SELECTED_PRODUCT = null;
+  renderCart();
+}
+
+function renderCart() {
+  document.getElementById('cartBody').innerHTML = CART.map(function(c, i) {
+    return '<tr><td>' + c.name + '</td><td>' + c.modeLabel + '</td><td>' + c.qty + '</td><td>Rs.' + c.unitPrice.toFixed(2) + '</td><td>Rs.' + c.total.toFixed(2) + '</td><td><button class="btn btn-sm btn-danger" onclick="CART.splice(' + i + ',1);renderCart()">×</button></td></tr>';
+  }).join('');
+  recalculateTotal();
+}
+
+function completeSale(st) {
+  if (TRANSACTION_IN_PROGRESS) return toast('In progress', 'warning');
+  if (!CART.length) return toast('Cart empty', 'warning');
+  TRANSACTION_IN_PROGRESS = true;
+  document.getElementById('updateSaleBtn').disabled = true;
+  document.getElementById('completeSaleBtn').disabled = true;
+  document.getElementById('addToCartBtn').disabled = true;
+  
+  var subtotal = CART.reduce(function(s, c) { return s + c.total; }, 0);
+  var discountType = document.getElementById('saleDiscountType').value;
+  var discountValue = +document.getElementById('saleDiscountValue').value || 0;
+  var discResult = calculateDiscount(subtotal, discountType, discountValue);
+  
+  var sale = {
+    items: CART,
+    total: subtotal,
+    discountType: discountType,
+    discountValue: discountValue,
+    discountAmount: discResult.discountAmount,
+    grandTotal: discResult.grandTotal,
+    user: USER.name,
+    status: st
+  };
+  
+  call('addSale', sale).then(function(r) {
+    if (r.ok) {
+      CART = [];
+      renderCart();
+      document.getElementById('saleDiscountType').value = 'none';
+      document.getElementById('saleDiscountValue').value = 0;
+      call('getProducts').then(function(p) { PRODUCTS = p || []; });
+      toast('Saved');
+    }
+  }).finally(function() {
+    TRANSACTION_IN_PROGRESS = false;
+    document.getElementById('updateSaleBtn').disabled = false;
+    document.getElementById('completeSaleBtn').disabled = false;
+    document.getElementById('addToCartBtn').disabled = false;
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 13: JAVASCRIPT - INVENTORY MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadInventory() {
+  call('getProducts').then(function(p) {
+    PRODUCTS = p || [];
+    var fn = (document.getElementById('invFilterName').value || '').toLowerCase();
+    var fs = (document.getElementById('invFilterSupplier').value || '').toLowerCase();
+    var fc = (document.getElementById('invFilterCompany').value || '').toLowerCase();
+    var filtered = PRODUCTS.filter(function(p) {
+      if (fn && !(p.name || '').toLowerCase().includes(fn)) return false;
+      if (fs && !(p.supplier || '').toLowerCase().includes(fs)) return false;
+      if (fc && !(p.company || '').toLowerCase().includes(fc)) return false;
+      return true;
+    });
+    FILTERED_INV = filtered;
+    var r = paginate(filtered, 'inv');
+    document.getElementById('invBody').innerHTML = r.items.map(function(p) {
+      var low = (p.quantity || 0) <= (p.alertQty || 0);
+      var pu = '-';
+      if (p.productType === 'packet' || p.productType === 'liquid') {
+        pu = 'Rs.' + calculatePerItemPrice(p.packetPrice, p.itemsPerPacket).toFixed(2);
+      } else {
+        pu = 'Rs.' + (p.price || 0);
+      }
+      var sn = (p.name || '').replace(/'/g, "\\'");
+      return '<tr class="' + (low ? 'table-warning' : '') + '">' +
+        '<td class="wrap-text">' + p.name + '</td>' +
+        '<td>' + getProductTypeBadge(p.productType) + '</td>' +
+        '<td class="wrap-text">' + (p.supplier || '-') + '</td>' +
+        '<td class="wrap-text">' + (p.company || '-') + '</td>' +
+        '<td><input type="number" step="0.01" value="' + p.quantity + '" class="form-control form-control-sm" onchange="updInv(\'' + p.id + '\',\'quantity\',this.value)"></td>' +
+        '<td><input type="number" step="0.01" value="' + (p.alertQty || 0) + '" class="form-control form-control-sm" onchange="updInv(\'' + p.id + '\',\'alertQty\',this.value)"></td>' +
+        '<td>' + pu + '</td>' +
+        '<td>' + (low ? '<span class="badge bg-danger">Low</span>' : '<span class="badge bg-success">OK</span>') + '</td>' +
+        '<td class="text-nowrap"><button class="btn btn-sm btn-primary me-1" onclick="editProductField(\'' + p.id + '\',\'name\',\'' + sn + '\')"><i class="bi bi-pencil"></i></button></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('invPag').innerHTML = pagHTML('inv', r.total);
+  });
+}
+
+function clearInvFilters() {
+  document.getElementById('invFilterName').value = '';
+  document.getElementById('invFilterSupplier').value = '';
+  document.getElementById('invFilterCompany').value = '';
+  loadInventory();
+}
+
+function updInv(id, field, val) {
+  if (!id || !field || val === '' || val === null) { toast('Invalid', 'warning'); return; }
+  var upd = {};
+  if (['name','barcode','unit','supplier','company'].indexOf(field) >= 0) {
+    upd[field] = String(val).trim();
+  } else {
+    var n = parseFloat(val);
+    if (isNaN(n) || n < 0) { toast('Invalid number', 'warning'); return; }
+    upd[field] = n;
+  }
+  toast('Updating...', 'info');
+  call('updateProduct', id, upd).then(function(r) {
+    if (r && r.ok) { toast('✓ Updated', 'success'); loadInventory(); }
+    else { toast('✗ ' + ((r && r.msg) || 'Failed'), 'danger'); }
+  });
+}
+
+function editProductField(id, field, cv) {
+  var labels = { 'name': 'Product Name', 'barcode': 'Barcode', 'supplier': 'Supplier', 'company': 'Company' };
+  var nv = prompt('Enter new ' + (labels[field] || field) + ':', cv || '');
+  if (nv === null) return;
+  nv = nv.trim();
+  if (!nv) { toast('Cannot be empty', 'warning'); return; }
+  updInv(id, field, nv);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 14: JAVASCRIPT - LOW STOCK MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadLowStock() {
+  call('getProducts').then(function(p) {
+    PRODUCTS = p || [];
+    var allLow = PRODUCTS.filter(function(p) { return (p.quantity || 0) <= (p.alertQty || 0); });
+    var fn = (document.getElementById('lowFilterName').value || '').toLowerCase();
+    var fs = (document.getElementById('lowFilterSupplier').value || '').toLowerCase();
+    var fc = (document.getElementById('lowFilterCompany').value || '').toLowerCase();
+    var filtered = allLow.filter(function(p) {
+      if (fn && !(p.name || '').toLowerCase().includes(fn)) return false;
+      if (fs && !(p.supplier || '').toLowerCase().includes(fs)) return false;
+      if (fc && !(p.company || '').toLowerCase().includes(fc)) return false;
+      return true;
+    });
+    LOW_STOCK = filtered;
+    var r = paginate(filtered, 'lowstock');
+    document.getElementById('lowStockBody').innerHTML = r.items.map(function(p) {
+      var pu = '-';
+      if (p.productType === 'packet' || p.productType === 'liquid') {
+        pu = 'Rs.' + calculatePerItemPrice(p.packetPrice, p.itemsPerPacket).toFixed(2);
+      } else {
+        pu = 'Rs.' + (p.price || 0);
+      }
+      return '<tr><td class="wrap-text">' + p.name + '</td><td>' + getProductTypeBadge(p.productType) + '</td><td class="wrap-text">' + (p.supplier || '-') + '</td><td class="wrap-text">' + (p.company || '-') + '</td><td>' + p.quantity + '</td><td>' + p.alertQty + '</td><td>' + pu + '</td><td class="text-danger">' + (p.alertQty - p.quantity) + '</td></tr>';
+    }).join('');
+    document.getElementById('lowStockPag').innerHTML = pagHTML('lowstock', r.total);
+  });
+}
+
+function clearLowFilters() {
+  document.getElementById('lowFilterName').value = '';
+  document.getElementById('lowFilterSupplier').value = '';
+  document.getElementById('lowFilterCompany').value = '';
+  loadLowStock();
+}
+
+function printLowStock() {
+  if (!LOW_STOCK.length) return toast('No low stock', 'warning');
+  var h = '<div class="bill-print"><h5>' + (SETTINGS.storeName || 'Store') + '</h5><h6>LOW STOCK ALERT</h6><hr><table style="width:100%;font-size:10px"><tr><th>Product</th><th>Supplier</th><th>Company</th><th>Stock</th><th>Alert</th></tr>';
+  LOW_STOCK.forEach(function(p) {
+    h += '<tr><td>' + p.name + '</td><td>' + (p.supplier || '-') + '</td><td>' + (p.company || '-') + '</td><td>' + p.quantity + '</td><td>' + p.alertQty + '</td></tr>';
+  });
+  h += '</table><hr><div class="footer-static">' + (SETTINGS.footer || 'A PROJECT BY HNK TECH & STUDIO') + '</div></div>';
+  var w = window.open('', '_blank', 'width=350,height=600');
+  w.document.write('<html><head><title>Low Stock</title><style>.bill-print{width:80mm;font-family:monospace;font-size:12px;padding:5mm}.bill-print h5,.bill-print h6{text-align:center}.footer-static{text-align:center;font-weight:bold;margin-top:10px;border-top:1px dashed #000;padding-top:5px;font-size:10px}</style></head><body>' + h + '<script>window.onload=()=>{window.print();}<\/script></body></html>');
+}
+
+function shareLowStockWA() {
+  if (!LOW_STOCK.length) return toast('No low stock', 'warning');
+  var num = prompt('WhatsApp number:', '');
+  if (!num) return;
+  var msg = '*' + (SETTINGS.storeName || 'Store') + '*\n*LOW STOCK ALERT*\n\n';
+  LOW_STOCK.forEach(function(p) {
+    msg += p.name + ' [' + (p.supplier || 'N/A') + ']: ' + p.quantity + ' (Alert: ' + p.alertQty + ')\n';
+  });
+  msg += '\n_' + (SETTINGS.footer || '') + '_';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 15: JAVASCRIPT - SUPPLIERS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadSuppliers() {
+  call('getSuppliers').then(function(s) {
+    SUPPLIERS = s || [];
+    var r = paginate(SUPPLIERS, 'suppliers');
+    document.getElementById('supBody').innerHTML = r.items.map(function(s) {
+      return '<tr><td class="wrap-text fw-bold">' + s.name + '</td><td>' + s.contact + '</td><td class="wrap-text">' + (s.email || '-') + '</td><td>' + (s.city || '-') + '</td><td>' + (s.ntn || '-') + '</td><td class="wrap-text">' + (s.custom1 || '-') + '</td><td><button class="btn btn-sm btn-danger" onclick="delSupplier(\'' + s.id + '\')"><i class="bi bi-trash"></i></button></td></tr>';
+    }).join('');
+    document.getElementById('supPag').innerHTML = pagHTML('suppliers', r.total);
+  });
+}
+
+function saveSupplier() {
+  var s = {
+    name: supName.value, contact: supContact.value, email: supEmail.value,
+    address: supAddress.value, city: supCity.value, phone: supPhone.value,
+    ntn: supNTN.value, custom1: supCustom1.value, custom2: supCustom2.value, custom3: supCustom3.value
+  };
+  call('addSupplier', s).then(function(r) {
+    if (r.ok) {
+      supName.value = supContact.value = supEmail.value = supAddress.value = supCity.value = supPhone.value = supNTN.value = supCustom1.value = supCustom2.value = supCustom3.value = '';
+      loadSuppliers();
+      toast('Supplier registered');
+    } else {
+      toast(r.msg, 'danger');
+    }
+  });
+}
+
+function delSupplier(id) {
+  if (confirm('Delete supplier?')) {
+    call('deleteEntity', 'Suppliers', id).then(function() { loadSuppliers(); });
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 16: JAVASCRIPT - AUTOCOMPLETE HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+function setupAutocomplete(iid, lid, hid, cb) {
+  var input = document.getElementById(iid);
+  var list = document.getElementById(lid);
+  var hidden = document.getElementById(hid);
+  
+  var df = debounce(function(val) {
+    if (val.length < 1) { list.classList.remove('show'); return; }
+    var matches = PRODUCTS.filter(function(p) { 
+      return (p.name || '').toLowerCase().includes(val) || (p.barcode || '').toLowerCase().includes(val);
+    }).slice(0, 10);
+    if (!matches.length) { list.classList.remove('show'); return; }
+    list.innerHTML = matches.map(function(p) {
+      var pi = '';
+      if (p.productType === 'packet' || p.productType === 'liquid') {
+        pi = 'Packet: Rs.' + p.packetPrice + ' | Per ' + getUnitLabel(p) + ': Rs.' + calculatePerItemPrice(p.packetPrice, p.itemsPerPacket).toFixed(2);
+      } else {
+        pi = 'Rs.' + p.price;
+      }
+      return '<div class="autocomplete-item" data-id="' + p.id + '"><strong>' + p.name + '</strong><br><small>' + getProductTypeBadge(p.productType) + ' ' + pi + ' (Stock: ' + p.quantity + ')</small></div>';
+    }).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.autocomplete-item').forEach(function(item) {
+      item.onclick = function() {
+        var id = this.dataset.id;
+        var product = PRODUCTS.find(function(p) { return p.id === id; });
+        hidden.value = id;
+        input.value = product.name;
+        list.classList.remove('show');
+        if (cb) cb(product);
+      };
+    });
+  }, 300);
+  
+  input.addEventListener('input', function() { df(this.value.toLowerCase().trim()); });
+  input.addEventListener('blur', function() { setTimeout(function() { list.classList.remove('show'); }, 200); });
+}
+
+function setupSupplierAutocomplete() {
+  var input = document.getElementById('pSupplier');
+  var list = document.getElementById('pSupplierList');
+  
+  var df = debounce(function(val) {
+    if (val.length < 1) { list.classList.remove('show'); return; }
+    var matches = SUPPLIERS.filter(function(s) {
+      return (s.name || '').toLowerCase().includes(val) || 
+             (s.contact || '').toLowerCase().includes(val) || 
+             (s.city || '').toLowerCase().includes(val);
+    }).slice(0, 10);
+    if (!matches.length) { list.classList.remove('show'); return; }
+    list.innerHTML = matches.map(function(s) {
+      return '<div class="autocomplete-item" data-name="' + s.name + '"><strong>' + s.name + '</strong><br><small>' + s.contact + ' | ' + s.city + '</small></div>';
+    }).join('');
+    list.classList.add('show');
+    list.querySelectorAll('.autocomplete-item').forEach(function(item) {
+      item.onclick = function() {
+        input.value = this.dataset.name;
+        list.classList.remove('show');
+      };
+    });
+  }, 300);
+  
+  input.addEventListener('input', function() { df(this.value.toLowerCase().trim()); });
+  input.addEventListener('blur', function() { setTimeout(function() { list.classList.remove('show'); }, 200); });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 17: JAVASCRIPT - ORDER BOOKING MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadOBProducts() {
+  setupAutocomplete('obProductSearch', 'obProductList', 'obProductId');
+  renderOB();
+}
+
+function addOBItem() {
+  var id = document.getElementById('obProductId').value;
+  if (!id) return toast('Select product', 'warning');
+  var p = PRODUCTS.find(function(x) { return x.id === id; });
+  if (!p) return toast('Not found', 'danger');
+  var q = +document.getElementById('obQty').value;
+  var m = document.getElementById('obMode').value;
+  if (q < 1) return toast('Qty >= 1', 'warning');
+  
+  var tp = calculateSalePrice(p, m, q);
+  var up = m === 'packet' ? p.packetPrice : calculatePerItemPrice(p.packetPrice, p.itemsPerPacket);
+  if (p.productType === 'single') { up = p.price; tp = up * q; m = 'single'; }
+  
+  OB_CART.push({
+    id: p.id, name: p.name, productType: p.productType,
+    sellMode: m, qty: q, unitPrice: up, total: tp
+  });
+  
+  document.getElementById('obProductSearch').value = '';
+  document.getElementById('obProductId').value = '';
+  document.getElementById('obQty').value = 1;
+  renderOB();
+}
+
+function renderOB() {
+  document.getElementById('obBody').innerHTML = OB_CART.map(function(c, i) {
+    var ml = c.productType === 'single' ? 'Single' : (c.sellMode === 'packet' ? 'Packet' : getUnitLabel(PRODUCTS.find(function(p) { return p.id === c.id; }) || {}));
+    return '<tr><td>' + c.name + '</td><td>' + ml + '</td><td>' + c.qty + '</td><td>Rs.' + c.total.toFixed(2) + '</td><td><button class="btn btn-sm btn-danger" onclick="OB_CART.splice(' + i + ',1);renderOB()">×</button></td></tr>';
+  }).join('');
+  document.getElementById('obTotal').innerText = OB_CART.reduce(function(s, c) { return s + c.total; }, 0).toFixed(2);
+}
+
+function saveBooking() {
+  if (TRANSACTION_IN_PROGRESS) return toast('In progress', 'warning');
+  if (!OB_CART.length) return toast('Add items', 'warning');
+  if (!obShop.value || !obLoc.value) return toast('Shop & location required', 'warning');
+  TRANSACTION_IN_PROGRESS = true;
+  document.getElementById('saveBookingBtn').disabled = true;
+  document.getElementById('addOBItemBtn').disabled = true;
+  var b = {
+    orderBooker: USER.name, bookerId: USER.id,
+    shopName: obShop.value, location: obLoc.value,
+    items: OB_CART, total: OB_CART.reduce(function(s, c) { return s + c.total; }, 0)
+  };
+  call('addBooking', b).then(function(r) {
+    if (r.ok) {
+      OB_CART = []; renderOB(); obShop.value = obLoc.value = ''; toast('Booked');
+    }
+  }).finally(function() {
+    TRANSACTION_IN_PROGRESS = false;
+    document.getElementById('saveBookingBtn').disabled = false;
+    document.getElementById('addOBItemBtn').disabled = false;
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 18: JAVASCRIPT - ORDER LOGS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadOrderLogs() {
+  call('getOrderLogs').then(function(l) {
+    l = l || [];
+    var r = paginate(l, 'oblog');
+    document.getElementById('obLogBody').innerHTML = r.items.map(function(l) {
+      return '<tr><td>' + l.id + '</td><td>' + l.orderBooker + '</td><td>' + l.shopName + '</td><td>' + l.location + '</td><td>Rs.' + (+l.total).toFixed(2) + '</td><td>' + l.created + '</td></tr>';
+    }).join('');
+    document.getElementById('obLogPag').innerHTML = pagHTML('oblog', r.total);
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 19: JAVASCRIPT - DELIVERY MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadDelivery() {
+  call('getOrders').then(function(o) {
+    o = o || [];
+    var pend = o.filter(function(x) { return x.status !== 'delivered'; });
+    var f = (document.getElementById('delFilter').value || '').toLowerCase();
+    var fil = pend.filter(function(x) {
+      return !f || (x.shopName || '').toLowerCase().includes(f) || (x.location || '').toLowerCase().includes(f);
+    });
+    var r = paginate(fil, 'del');
+    CURRENT_FILTERED = fil;
+    document.getElementById('delBody').innerHTML = r.items.map(function(o) {
+      return '<tr><td>' + o.shopName + '</td><td>' + o.location + '</td><td>' + o.orderBooker + '</td><td>Rs.' + (+o.total).toFixed(2) + '</td><td><button class="btn btn-sm btn-success" onclick="doDelivery(\'' + o.id + '\')"><i class="bi bi-check2"></i> Complete</button></td></tr>';
+    }).join('');
+    document.getElementById('delPag').innerHTML = pagHTML('del', r.total);
+  });
+}
+
+function doDelivery(id) {
+  if (TRANSACTION_IN_PROGRESS) return toast('In progress', 'warning');
+  TRANSACTION_IN_PROGRESS = true;
+  call('completeDelivery', id, USER.name).then(function() {
+    toast('Delivered');
+    loadDelivery();
+  }).finally(function() {
+    TRANSACTION_IN_PROGRESS = false;
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 20: JAVASCRIPT - DELIVERY LOGS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadDeliveryLogs() {
+  call('getDeliveryLogs').then(function(l) {
+    l = l || [];
+    var r = paginate(l, 'dellog');
+    document.getElementById('delLogBody').innerHTML = r.items.map(function(l) {
+      return '<tr><td>' + l.id + '</td><td>' + l.deliveredBy + '</td><td>' + l.shopName + '</td><td>Rs.' + (+l.total).toFixed(2) + '</td><td>' + l.deliveredAt + '</td></tr>';
+    }).join('');
+    document.getElementById('delLogPag').innerHTML = pagHTML('dellog', r.total);
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 21: JAVASCRIPT - ALL SALES MODULE (WITH DISCOUNT)
+// ═══════════════════════════════════════════════════════════════════════════
+function loadAllSales() {
+  call('getAllSales').then(function(sales) {
+    sales = sales || [];
+    var uf = asUser.value.toLowerCase();
+    var pf = asProd.value.toLowerCase();
+    var period = asPeriod.value;
+    var from = asFrom.value;
+    var to = asTo.value;
+    var now = new Date();
+    
+    if (period === 'custom') {
+      asFrom.style.display = 'block';
+      asTo.style.display = 'block';
+    } else {
+      asFrom.style.display = 'none';
+      asTo.style.display = 'none';
+    }
+    
+    sales = sales.filter(function(s) {
+      if (uf && !(s.user || s.orderBooker || s.deliveryUser || '').toLowerCase().includes(uf)) return false;
+      if (pf) {
+        var items = safeParseJSON(s.items, []);
+        if (!items.some(function(i) { return (i.name || '').toLowerCase().includes(pf); })) return false;
+      }
+      var d = new Date(s.created);
+      if (period === 'day' && d.toDateString() !== now.toDateString()) return false;
+      if (period === 'week' && (now - d) > 7 * 86400000) return false;
+      if (period === 'month' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
+      if (period === 'year' && d.getFullYear() !== now.getFullYear()) return false;
+      if (period === 'custom') {
+        if (from && d < new Date(from)) return false;
+        if (to && d > new Date(to + 'T23:59')) return false;
+      }
+      return true;
+    });
+    
+    ALL_SALES_CACHE = sales;
+    var r = paginate(sales, 'as');
+    document.getElementById('asBody').innerHTML = r.items.map(function(s) {
+      var subtotal = +s.total || 0;
+      var discAmt = +s.discountAmount || 0;
+      var grandTotal = +s.grandTotal;
+      if (grandTotal === undefined || grandTotal <= 0) grandTotal = subtotal - discAmt;
+      var discDisplay = discAmt > 0 ? '<span class="text-danger">- Rs.' + discAmt.toFixed(2) + '</span>' : '<span class="text-muted">-</span>';
+      return '<tr><td class="wrap-text">' + s.id + '</td><td><span class="badge bg-' + (s.type === 'counter' ? 'primary' : 'success') + '">' + s.type + '</span></td><td class="wrap-text">' + (s.user || s.orderBooker || s.deliveryUser || '-') + '</td><td class="wrap-text">' + (s.shopName || '-') + '</td><td class="text-nowrap">Rs.' + subtotal.toFixed(2) + '</td><td class="text-nowrap">' + discDisplay + '</td><td class="text-nowrap fw-bold text-primary">Rs.' + grandTotal.toFixed(2) + '</td><td class="text-nowrap">' + new Date(s.created).toLocaleDateString() + '</td><td><button class="btn btn-sm btn-danger" onclick="delSale(\'' + s.id + '\')"><i class="bi bi-trash"></i></button></td></tr>';
+    }).join('');
+    
+    var totalSubtotal = sales.reduce(function(s, x) { return s + (+x.total || 0); }, 0);
+    var totalDiscount = sales.reduce(function(s, x) { return s + (+x.discountAmount || 0); }, 0);
+    var totalGrand = sales.reduce(function(s, x) {
+      var gt = +x.grandTotal;
+      return s + ((gt !== undefined && gt > 0) ? gt : ((+x.total || 0) - (+x.discountAmount || 0)));
+    }, 0);
+    
+    document.getElementById('asSubtotal').innerText = totalSubtotal.toFixed(2);
+    document.getElementById('asDiscount').innerText = totalDiscount.toFixed(2);
+    document.getElementById('asTotal').innerText = totalGrand.toFixed(2);
+    document.getElementById('asPag').innerHTML = pagHTML('as', r.total);
+  });
+}
+
+function delSale(id) {
+  if (confirm('Delete?')) {
+    call('deleteEntity', 'Sales', id).then(function() { loadAllSales(); });
+  }
+}
+
+function downloadCSV() {
+  if (!ALL_SALES_CACHE.length) return toast('No data', 'warning');
+  var h = Object.keys(ALL_SALES_CACHE[0]);
+  var csv = [h.join(',')].concat(ALL_SALES_CACHE.map(function(r) {
+    return h.map(function(k) { return JSON.stringify(r[k] || ''); }).join(',');
+  })).join('\n');
+  var b = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'sales.csv';
+  a.click();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 22: JAVASCRIPT - SALES DETAILS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function handlePeriodChange() {
+  var p = document.getElementById('sdPeriod').value;
+  if (p === 'custom') {
+    document.getElementById('sdFrom').style.display = 'block';
+    document.getElementById('sdTo').style.display = 'block';
+  } else {
+    document.getElementById('sdFrom').style.display = 'none';
+    document.getElementById('sdTo').style.display = 'none';
+  }
+}
+
+function loadSalesDetails() {
+  var period = document.getElementById('sdPeriod').value;
+  var from = document.getElementById('sdFrom').value;
+  var to = document.getElementById('sdTo').value;
+  var rf = document.getElementById('sdRole').value;
+  
+  Promise.all([call('getAllSales'), call('getUsers')]).then(function(res) {
+    var sales = res[0] || [];
+    var users = res[1] || [];
+    var now = new Date();
+    var urm = {};
+    users.forEach(function(u) { urm[u.username] = u.role; urm[u.name] = u.role; });
+    
+    sales = sales.filter(function(s) {
+      var d = new Date(s.created);
+      if (period === 'day' && d.toDateString() !== now.toDateString()) return false;
+      if (period === 'week' && (now - d) > 7 * 86400000) return false;
+      if (period === 'month' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
+      if (period === 'year' && d.getFullYear() !== now.getFullYear()) return false;
+      if (period === 'custom') {
+        if (from && d < new Date(from)) return false;
+        if (to && d > new Date(to + 'T23:59')) return false;
+      }
+      if (rf !== 'all') {
+        var un = s.user || s.orderBooker || s.deliveryUser || '';
+        if ((urm[un] || '') !== rf) return false;
+      }
+      return true;
+    });
+    
+    SALES_DETAILS = sales;
+    var um = {};
+    sales.forEach(function(s) {
+      var u = s.user || s.orderBooker || s.deliveryUser || 'Unknown';
+      var r = urm[u] || s.type || 'unknown';
+      if (!um[u]) um[u] = { name: u, role: r, count: 0, total: 0 };
+      um[u].count++;
+      var gt = +s.grandTotal;
+      um[u].total += ((gt !== undefined && gt > 0) ? gt : (+s.total || 0) - (+s.discountAmount || 0));
+    });
+    
+    var ul = Object.values(um);
+    var tr = ul.reduce(function(s, u) { return s + u.total; }, 0);
+    var tt = ul.reduce(function(s, u) { return s + u.count; }, 0);
+    document.getElementById('sdTotalRevenue').innerText = tr.toFixed(2);
+    document.getElementById('sdTotalTrans').innerText = tt;
+    document.getElementById('sdBody').innerHTML = ul.length ? ul.map(function(u) {
+      return '<tr><td class="wrap-text fw-bold">' + u.name + '</td><td><span class="badge bg-info text-capitalize">' + u.role + '</span></td><td class="text-center">' + u.count + '</td><td class="text-nowrap fw-bold text-primary">Rs.' + u.total.toFixed(2) + '</td><td class="text-nowrap">Rs.' + (u.total / u.count).toFixed(2) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="text-center text-muted">No data</td></tr>';
+  });
+}
+
+function printSalesDetails() {
+  if (!SALES_DETAILS.length) return toast('No data', 'warning');
+  var p = document.getElementById('sdPeriod').value;
+  var rf = document.getElementById('sdRole').value;
+  var h = '<div class="bill-print"><h5>' + (SETTINGS.storeName || 'Store') + '</h5><h6>SALES DETAILS</h6><hr><table style="width:100%;font-size:11px"><tr><th>User</th><th>Trans</th><th>Amount</th></tr>';
+  var um = {};
+  SALES_DETAILS.forEach(function(s) {
+    var u = s.user || s.orderBooker || s.deliveryUser || 'Unknown';
+    if (!um[u]) um[u] = { count: 0, total: 0 };
+    um[u].count++;
+    var gt = +s.grandTotal;
+    um[u].total += ((gt !== undefined && gt > 0) ? gt : (+s.total || 0) - (+s.discountAmount || 0));
+  });
+  Object.entries(um).forEach(function(e) {
+    h += '<tr><td>' + e[0] + '</td><td>' + e[1].count + '</td><td>' + e[1].total.toFixed(2) + '</td></tr>';
+  });
+  var t = Object.values(um).reduce(function(s, u) { return s + u.total; }, 0);
+  h += '</table><hr><h5>TOTAL: Rs.' + t.toFixed(2) + '</h5><div class="footer-static">' + (SETTINGS.footer || 'A PROJECT BY HNK TECH & STUDIO') + '</div></div>';
+  var w = window.open('', '_blank', 'width=350,height=600');
+  w.document.write('<html><head><title>Sales</title><style>.bill-print{width:80mm;font-family:monospace;font-size:12px;padding:5mm}.bill-print h5,.bill-print h6{text-align:center}.footer-static{text-align:center;font-weight:bold;margin-top:10px;border-top:1px dashed #000;padding-top:5px;font-size:10px}</style></head><body>' + h + '<script>window.onload=()=>{window.print();}<\/script></body></html>');
+}
+
+function shareSalesDetailsWA() {
+  if (!SALES_DETAILS.length) return toast('No data', 'warning');
+  var num = prompt('WhatsApp:', '');
+  if (!num) return;
+  var p = document.getElementById('sdPeriod').value;
+  var rf = document.getElementById('sdRole').value;
+  var msg = '*' + (SETTINGS.storeName || 'Store') + '*\n*SALES DETAILS*\nPeriod: ' + p + '\nRole: ' + rf + '\n\n';
+  var um = {};
+  SALES_DETAILS.forEach(function(s) {
+    var u = s.user || s.orderBooker || s.deliveryUser || 'Unknown';
+    if (!um[u]) um[u] = { role: s.type, count: 0, total: 0 };
+    um[u].count++;
+    var gt = +s.grandTotal;
+    um[u].total += ((gt !== undefined && gt > 0) ? gt : (+s.total || 0) - (+s.discountAmount || 0));
+  });
+  Object.entries(um).forEach(function(e) {
+    msg += '*' + e[0] + '* (' + e[1].role + '): ' + e[1].count + ' trans = Rs.' + e[1].total.toFixed(2) + '\n';
+  });
+  var t = Object.values(um).reduce(function(s, u) { return s + u.total; }, 0);
+  msg += '\n*TOTAL: Rs.' + t.toFixed(2) + '*\n\n_' + (SETTINGS.footer || '') + '_';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 23: JAVASCRIPT - USERS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadUsers() {
+  call('getUsers').then(function(u) {
+    u = u || [];
+    var r = paginate(u, 'users');
+    document.getElementById('usersBody').innerHTML = r.items.map(function(u) {
+      return '<tr><td>' + u.name + '</td><td>' + u.username + '</td><td><span class="badge bg-info">' + u.role + '</span></td><td><button class="btn btn-sm btn-danger" onclick="delUser(\'' + u.id + '\')"><i class="bi bi-trash"></i></button></td></tr>';
+    }).join('');
+    document.getElementById('usersPag').innerHTML = pagHTML('users', r.total);
+  });
+}
+
+function saveUser() {
+  var u = { name: uName.value, username: uUser.value, password: uPass.value, role: uRole.value };
+  if (!u.name || !u.username || !u.password) return toast('All fields required', 'warning');
+  call('addUser', u).then(function(r) {
+    if (r.ok) {
+      uName.value = uUser.value = uPass.value = '';
+      loadUsers();
+      toast('Created');
+    } else {
+      toast(r.msg, 'danger');
+    }
+  });
+}
+
+function delUser(id) {
+  if (confirm('Delete?')) {
+    call('deleteEntity', 'Users', id).then(function() { loadUsers(); });
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 24: JAVASCRIPT - TRASH MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadTrash() {
+  call('getTrash').then(function(t) {
+    t = t || [];
+    var f = (trFilter.value || '').toLowerCase();
+    if (f) t = t.filter(function(x) { return JSON.stringify(x).toLowerCase().includes(f); });
+    var r = paginate(t, 'trash');
+    document.getElementById('trashBody').innerHTML = r.items.map(function(t) {
+      return '<tr><td><input type="checkbox" class="trChk" value="' + t.id + '"></td><td>' + (t._from || '') + '</td><td class="wrap-text">' + JSON.stringify(t).substring(0, 80) + '</td><td>' + (t._deletedAt || '') + '</td><td><button class="btn btn-sm btn-success" onclick="restoreItem(\'' + t.id + '\')"><i class="bi bi-arrow-counterclockwise"></i></button><button class="btn btn-sm btn-danger" onclick="permDelete(\'' + t.id + '\')"><i class="bi bi-x-circle"></i></button></td></tr>';
+    }).join('');
+    document.getElementById('trashPag').innerHTML = pagHTML('trash', r.total);
+  });
+}
+
+function restoreItem(id) {
+  call('restoreFromTrash', id).then(function() { loadTrash(); });
+}
+
+function permDelete(id) {
+  call('permanentDelete', id).then(function() { loadTrash(); });
+}
+
+function toggleAllTrash(c) {
+  document.querySelectorAll('.trChk').forEach(function(x) { x.checked = c.checked; });
+}
+
+function bulkRestore() {
+  var p = [];
+  document.querySelectorAll('.trChk:checked').forEach(function(c) {
+    p.push(call('restoreFromTrash', c.value));
+  });
+  Promise.all(p).then(function() { loadTrash(); toast('Restored'); });
+}
+
+function bulkDelete() {
+  var p = [];
+  document.querySelectorAll('.trChk:checked').forEach(function(c) {
+    p.push(call('permanentDelete', c.value));
+  });
+  Promise.all(p).then(function() { loadTrash(); toast('Deleted'); });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 25: JAVASCRIPT - DATABASE MODULE (CSS FIXED)
+// ═══════════════════════════════════════════════════════════════════════════
+function loadDB() {
+  var table = dbTable.value;
+  call('getFullDB').then(function(data) {
+    var rows = data[table] || [];
+    var f = (dbSearch.value || '').toLowerCase();
+    if (f) rows = rows.filter(function(r) { return JSON.stringify(r).toLowerCase().includes(f); });
+    DB_CACHE = rows.map(function(r) { return Object.assign({ _table: table }, r); });
+    var r = paginate(DB_CACHE, 'db');
+    if (!r.items.length) {
+      document.getElementById('dbTableWrap').innerHTML = '<p>No data</p>';
+      document.getElementById('dbPag').innerHTML = '';
+      return;
+    }
+    var headers = Object.keys(r.items[0]).filter(function(k) { return !k.startsWith('_'); });
+    var html = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th style="min-width:40px"><input type="checkbox" onchange="document.querySelectorAll(\'.dbChk\').forEach(function(x){x.checked=this.checked;})"></th>';
+    headers.forEach(function(h) {
+      html += '<th class="wrap-text" style="min-width:100px">' + h + '</th>';
+    });
+    html += '<th style="min-width:80px"></th></tr></thead><tbody>';
+    r.items.forEach(function(r) {
+      html += '<tr><td><input type="checkbox" class="dbChk" value="' + r.id + '"></td>';
+      headers.forEach(function(h) {
+        html += '<td class="wrap-text">' + ((r[h] + '').substring(0, 40)) + '</td>';
+      });
+      html += '<td><button class="btn btn-sm btn-danger" onclick="dbDel(\'' + r.id + '\')"><i class="bi bi-trash"></i></button></td></tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('dbTableWrap').innerHTML = html;
+    document.getElementById('dbPag').innerHTML = pagHTML('db', r.total);
+  });
+}
+
+function dbDel(id) {
+  var r = DB_CACHE.find(function(x) { return x.id === id; });
+  if (!r) return;
+  call('deleteEntity', r._table, id).then(function() { loadDB(); });
+}
+
+function dbGroupDelete() {
+  var p = [];
+  document.querySelectorAll('.dbChk:checked').forEach(function(c) {
+    var r = DB_CACHE.find(function(x) { return x.id === c.value; });
+    if (r) p.push(call('deleteEntity', r._table, r.id));
+  });
+  Promise.all(p).then(function() { loadDB(); toast('Deleted'); });
+}
+
+function downloadDB() {
+  call('getFullDB').then(function(d) {
+    var b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'db.json';
+    a.click();
+  });
+}
+
+function uploadDB(ev) {
+  var f = ev.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    try {
+      var d = JSON.parse(e.target.result);
+      call('uploadDB', d).then(function() { toast('Uploaded'); loadDB(); });
+    } catch(err) {
+      toast('Invalid JSON', 'danger');
+    }
+  };
+  r.readAsText(f);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 26: JAVASCRIPT - SETTINGS MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+function loadSettings() {
+  sName.value = SETTINGS.storeName || '';
+  sContact.value = SETTINGS.contact || '';
+  sLoc.value = SETTINGS.location || '';
+  sThanks.value = SETTINGS.thankYou || '';
+  sFooter.value = SETTINGS.footer || '';
+  sCustom.value = SETTINGS.custom || '';
+}
+
+function saveSettings() {
+  SETTINGS = {
+    storeName: sName.value, contact: sContact.value, location: sLoc.value,
+    thankYou: sThanks.value, footer: sFooter.value, custom: sCustom.value,
+    theme: SETTINGS.theme, lang: SETTINGS.lang
+  };
+  call('saveSettings', SETTINGS).then(function() { toast('Saved'); });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 27: JAVASCRIPT - BILL/PRINT/WHATSAPP MODULE (WITH DISCOUNT)
+// ═══════════════════════════════════════════════════════════════════════════
+function buildBillHTML(items, total, discountType, discountValue, discountAmount, grandTotal) {
+  var h = '<div class="bill-print"><h5>' + (SETTINGS.storeName || 'HNK Pharma') + '</h5>';
+  h += '<div style="text-align:center;font-size:10px">' + (SETTINGS.contact || '') + ' | ' + (SETTINGS.location || '') + '</div>';
+  h += '<hr><table style="width:100%;font-size:11px"><tr><th>Item</th><th>Mode</th><th>Qty</th><th>Rs</th></tr>';
+  items.forEach(function(i) {
+    h += '<tr><td>' + i.name + '</td><td>' + (i.modeLabel || '-') + '</td><td>' + i.qty + '</td><td>' + (i.total || i.qty * i.price).toFixed(2) + '</td></tr>';
+  });
+  h += '</table>';
+  h += '<hr><div style="font-size:11px">';
+  h += '<div style="display:flex;justify-content:space-between"><span>Subtotal:</span><span>Rs.' + total.toFixed(2) + '</span></div>';
+  if (discountType && discountType !== 'none' && discountAmount > 0) {
+    var discLabel = discountType === 'percent' ? 'Discount (' + discountValue + '%)' : 'Discount (Fixed)';
+    h += '<div style="display:flex;justify-content:space-between;color:#dc3545"><span>' + discLabel + ':</span><span>- Rs.' + discountAmount.toFixed(2) + '</span></div>';
+  }
+  h += '<hr style="margin:5px 0">';
+  h += '<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold"><span>TOTAL:</span><span>Rs.' + (grandTotal || total).toFixed(2) + '</span></div>';
+  h += '</div>';
+  h += '<div style="text-align:center;font-size:10px;margin-top:8px">' + (SETTINGS.thankYou || 'Get well soon!') + '</div>';
+  h += '<div class="footer-static">' + (SETTINGS.footer || 'A PROJECT BY HNK TECH & STUDIO') + '</div></div>';
+  return h;
+}
+
+function getBillData(t) {
+  if (t === 'cart') {
+    var subtotal = CART.reduce(function(s, c) { return s + c.total; }, 0);
+    var dt = document.getElementById('saleDiscountType').value;
+    var dv = +document.getElementById('saleDiscountValue').value || 0;
+    var dr = calculateDiscount(subtotal, dt, dv);
+    return {
+      items: CART, total: subtotal,
+      discountType: dt, discountValue: dv,
+      discountAmount: dr.discountAmount, grandTotal: dr.grandTotal
+    };
+  }
+  if (t === 'ob') {
+    var total = OB_CART.reduce(function(s, c) { return s + c.total; }, 0);
+    return { items: OB_CART, total: total, discountType: 'none', discountValue: 0, discountAmount: 0, grandTotal: total };
+  }
+  if (t === 'allsales') {
+    if (!ALL_SALES_CACHE.length) return { items: [], total: 0, discountType: 'none', discountValue: 0, discountAmount: 0, grandTotal: 0 };
+    var summaryItems = [];
+    var totalSub = 0, totalDisc = 0, totalGrand = 0;
+    ALL_SALES_CACHE.forEach(function(s) {
+      var sub = +s.total || 0;
+      var disc = +s.discountAmount || 0;
+      var gt = +s.grandTotal;
+      if (gt === undefined || gt <= 0) gt = sub - disc;
+      totalSub += sub; totalDisc += disc; totalGrand += gt;
+      summaryItems.push({
+        name: (s.user || s.orderBooker || s.deliveryUser || 'Sale') + ' - ' + new Date(s.created).toLocaleDateString(),
+        qty: 1, price: gt, total: gt, modeLabel: s.type
+      });
+    });
+    return {
+      items: summaryItems, total: totalSub,
+      discountType: 'summary', discountValue: 0,
+      discountAmount: totalDisc, grandTotal: totalGrand
+    };
+  }
+  return { items: [], total: 0, discountType: 'none', discountValue: 0, discountAmount: 0, grandTotal: 0 };
+}
+
+function printBill(t) {
+  var d = getBillData(t);
+  if (!d.items.length) return toast('No items', 'warning');
+  var h = buildBillHTML(d.items, d.total, d.discountType, d.discountValue, d.discountAmount, d.grandTotal);
+  var w = window.open('', '_blank', 'width=350,height=600');
+  w.document.write('<html><head><title>Bill</title><style>.bill-print{width:80mm;font-family:monospace;font-size:12px;padding:5mm}.bill-print h5{text-align:center}.footer-static{text-align:center;font-weight:bold;margin-top:10px;border-top:1px dashed #000;padding-top:5px;font-size:10px}</style></head><body>' + h + '<script>window.onload=()=>{window.print();}<\/script></body></html>');
+}
+
+function shareWA(t) {
+  var d = getBillData(t);
+  if (!d.items.length) return toast('No items', 'warning');
+  var num = prompt('WhatsApp:', '');
+  if (!num) return;
+  var msg = '*' + (SETTINGS.storeName || 'HNK Pharma') + '*\n\n';
+  d.items.forEach(function(i) {
+    msg += i.name + ' [' + (i.modeLabel || '') + '] x' + i.qty + ' = Rs.' + (i.total || i.qty * i.price).toFixed(2) + '\n';
+  });
+  msg += '\n*Subtotal: Rs.' + d.total.toFixed(2) + '*\n';
+  if (d.discountType && d.discountType !== 'none' && d.discountAmount > 0) {
+    var dl = d.discountType === 'percent' ? 'Discount (' + d.discountValue + '%)' : 'Discount';
+    msg += '*' + dl + ': - Rs.' + d.discountAmount.toFixed(2) + '*\n';
+  }
+  msg += '\n*GRAND TOTAL: Rs.' + d.grandTotal.toFixed(2) + '*\n\n' + (SETTINGS.thankYou || '') + '\n\n_' + (SETTINGS.footer || '') + '_';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION 28: INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('lgPass').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('lgUser').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+  onProductTypeChange();
+  setupSupplierAutocomplete();
+});
+</script>
+</body>
+</html>
